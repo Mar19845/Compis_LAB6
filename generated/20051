@@ -1,0 +1,9 @@
+// NFA
+digraph {
+	rankdir=LR
+	node [shape=ellipse]
+	10
+	node [shape=doublecircle style=bold]
+	11
+	10 -> 11 [label="+"]
+}
