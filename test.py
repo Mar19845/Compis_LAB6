@@ -22,6 +22,7 @@ def testNFA():
     nfaBuilt = build_thompson(postfixExp.postfix)
     nfaBuilt.showNFA(file_name)
     Grapher.drawNFA(nfaBuilt,file_name)
+    Utils.simulate_exp(nfaBuilt)
     
 #testNFA()
 

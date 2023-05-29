@@ -1,0 +1,38 @@
+// NFA
+digraph {
+	rankdir=LR
+	node [shape=ellipse]
+	68
+	node [fillcolor="" shape=circle style=""]
+	64
+	68 -> 64 [label="ε"]
+	node [fillcolor="" shape=circle style=""]
+	66
+	68 -> 66 [label="ε"]
+	node [fillcolor="" shape=circle style=""]
+	69
+	node [shape=doublecircle style=bold]
+	71
+	69 -> 71 [label="∗"]
+	node [fillcolor="" shape=circle style=""]
+	60
+	64 -> 60 [label="ε"]
+	node [fillcolor="" shape=circle style=""]
+	62
+	64 -> 62 [label="ε"]
+	node [fillcolor="" shape=circle style=""]
+	65
+	65 -> 69 [label="ε"]
+	node [fillcolor="" shape=circle style=""]
+	61
+	60 -> 61 [label=a]
+	61 -> 65 [label="ε"]
+	node [fillcolor="" shape=circle style=""]
+	63
+	62 -> 63 [label=m]
+	63 -> 65 [label="ε"]
+	node [fillcolor="" shape=circle style=""]
+	67
+	66 -> 67 [label="ε"]
+	67 -> 69 [label="ε"]
+}
