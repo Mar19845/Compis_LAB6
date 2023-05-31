@@ -54,6 +54,18 @@ class Utils():
         yales_files = [name.replace(".\\","") for name in yales_files]
         return yales_files
     
+    @staticmethod
+    def tokenize(lines):
+        #pattern = r'\d+\.?\d*(?:[Ee][+-]?\d+)?|\w+|[()+\-*\/;:=]|[\t\n ]'
+        pattern = r'\d+\.?\d*(?:[Ee][+-]?\d+)?|\w+|[()+*-]'
+        token_lists = []
+
+        for input_str in lines:
+            # Use the findall() function from the re module to extract all matches
+            tokens = re.findall(pattern, input_str)
+            token_lists.append(tokens)
+        return token_lists
+    
 class Grapher():
     def drawNFA(nfa,file_name):
         file_path = Utils.create_file_path(file_name)

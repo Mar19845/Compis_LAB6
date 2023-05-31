@@ -1,6 +1,10 @@
+from typing import Any
 from constants import *
 from utils import Utils,Grapher
 from graphviz import Digraph
+from collections import defaultdict
+import dataframe_image as dfi
+import pandas as pd
 
 class ITEM:
     def __init__(self, label,production, dot_position,derived=False):
@@ -19,6 +23,9 @@ class ITEM:
     def __repr__(self):
         return f'{self.label} -> {" ".join(self.production[:self.dot_position]) + "." + " ".join(self.production[self.dot_position:])}'
 
+    def get_item(self):
+        return self.label,self.production,self.dot_position,self.derived
+    
 
 class LR0:
     def __init__(self,grammar,tokens,ignore_tokens):
@@ -29,8 +36,12 @@ class LR0:
         self.not_terminals = []
         self.states = None
         self.transitions = None
+        self.start_symbol = None
         self.FIRST = {}
         self.FOLLOW = {}
+        self.action_table = None
+        self.goto_table = None
+        self.slr1_table = None
         self.file_name = 'LR0_' + Utils.create_filename() 
         self.obtain_terminals_and_not_terminals()
         self.get_first_and_follow()
@@ -127,6 +138,7 @@ class LR0:
     
     def calculate_collections(self):
         extend_grammar_label = list(self.grammar.keys())[0] +'\''
+        self.start_symbol = extend_grammar_label
         items = ITEM(label= extend_grammar_label,production=[list(self.grammar.keys())[0]],dot_position=0)
         states = [self.closure({items}, self.grammar)]
         stack = [states[0]]
@@ -178,7 +190,8 @@ class LR0:
         return new_items
     
     def write_txt(self):
-        f = open(self.file_name + '.txt', 'w+', encoding="utf-8")
+        file_path = Utils.create_file_path(self.file_name)
+        f = open(file_path + '.txt', 'w+', encoding="utf-8")
         f.write("---------------LR0---------------\n")
         f.write(f"NOT TERMINALS: {self.not_terminals}\n")
         f.write(f"TERMINALS: {self.terminals}\n")
@@ -221,6 +234,97 @@ class LR0:
             dot.edge(str(t[0]), str(t[2]), label=t[1])
 
             # Generar y guardar el gráfico como imagen PNG
-        dot.render(self.file_name, cleanup=True)
+        file_path = Utils.create_file_path(self.file_name)
+        dot.render(file_path, cleanup=True)
+    
+    def get_next_state(self,old_state,symbol):
+        for i,state in enumerate(self.transitions):
+            if state[0] == old_state and state[1] == symbol:
+                return self.transitions[i]
+        
+        return None
+
+    def build_slr1_table(self):
+        action_table = defaultdict(dict)
+        goto_table = defaultdict(dict)
+        for i,state in enumerate(self.states):
+            for item in state:
+                label,production,dot_position,derived = item.get_item()
+                
+                if dot_position != len(production):
+                    next_symbol = production[dot_position]
+                    #print(next_symbol,type(next_symbol))
+                    
+                    
+                    if next_symbol in self.terminals:
+                        next_state = self.get_next_state(i,next_symbol)
+                        if next_state is not None:
+                            action_table[i][next_symbol] = ('S', next_state[2])
+                            pass
+                        
+                    
+                    elif next_symbol in self.not_terminals:
+                        next_state = self.get_next_state(i,next_symbol)
+                        if next_state is not None:
+                            goto_table[i][next_symbol] = next_state[2]
+                
+                elif label != self.start_symbol:
+                    if label in self.not_terminals: # compute only the not_terminals
+                        for symbol in self.FOLLOW[label]:
+                            #print(i,symbol,label,production) # print
+                            action_table[i][symbol] = ('R', (label, production))
+                            #next_state = self.get_next_state(i,symbol)
+                            #if next_state is not None:
+                                #action_table[i][symbol] = ('R', next_state[2])
+                            pass
+                            
+                elif label == self.start_symbol and dot_position == len(production):
+                    action_table[i]['$'] = ('ACCEPT', 'None')
+                    pass
+        self.action_table = action_table
+        self.goto_table = goto_table
+    
+    def create_slr1_table_png(self):
+        #print(self.terminals.sort())
+        
+        
+        def custom_sort(elem):
+            order = {'+': 0, '-': 1, '*': 2, '/': 3, '(': 4, ')': 5, 'id': 6, 'number': 7}
+            return order.get(elem, float('inf'))
+
+        sorted_a = sorted(self.terminals, key=custom_sort)
+        columns = sorted_a
+        columns.extend('$')
+        columns.extend(self.not_terminals)
+
+        df = pd.DataFrame(columns=columns)
+        #df = pd.DataFrame(columns=self.terminals)
+        # Llenar el dataframe con los valores de action_table
+        for estado, acciones in self.action_table.items():
+            for terminal, accion in acciones.items():
+                accion_tipo, accion_valor = accion
+                #print(estado, terminal)
+                df.loc[estado, terminal] = f"{accion_tipo}: {accion_valor}"
+
+        # Llenar el dataframe con los valores de goto_table
+        for estado, gotos in self.goto_table.items():
+            for not_terminal, goto in gotos.items():
+                #print(estado, not_terminal)
+                df.loc[estado, not_terminal] = goto
+
+        # Rellenar celdas vacías con NaN en lugar de None
+        df = df.fillna(pd.NA)
+
+        # Mostrar el dataframe resultante
+        #print(df.head(100))
+        self.slr1_table = df
+        df_styled = df.style.background_gradient() 
+        file_name = self.file_name + '_SLR1_TABLE.png'
+        file_path = Utils.create_file_path(file_name)
+        dfi.export(df_styled,file_path)
+        
+        
+                    
+        
         
         
